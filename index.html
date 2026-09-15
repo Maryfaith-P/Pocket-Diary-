@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Pocket Diary</title>
+
+  <!-- Mobile Web App Capability (Standalone Fullscreen PWA) -->
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Pocket Diary" />
+  <meta name="application-name" content="Pocket Diary" />
+
+  <!-- Theme Color for Browser & Mobile Header -->
+  <meta name="theme-color" content="#fff0f5" />
+  <meta name="msapplication-navbutton-color" content="#fff0f5" />
+
+  <!-- Pink Ribbon SVG Icon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%23ffd1dc'/><text y='68' x='50' text-anchor='middle' font-size='56'>🎀</text></svg>" />
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%23ffd1dc'/><text y='68' x='50' text-anchor='middle' font-size='56'>🎀</text></svg>" />
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: #fff0f5; color: #444; min-height: 100vh; overflow-x: hidden; }
+
+    /* Top Sticky Navigation Bar */
+    .top-nav {
+      position: sticky; top: 0; z-index: 50;
+      background: #ffffff; border-bottom: 2px solid #ffd4de;
+      padding: 12px 16px; display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 2px 8px rgba(244, 63, 110, 0.06);
+    }
+    .nav-left { display: flex; align-items: center; gap: 12px; }
+    .menu-btn {
+      background: #ffe4ea; border: 1.5px solid #fecdd7;
+      width: 38px; height: 38px; border-radius: 12px;
+      display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 4px;
+      cursor: pointer;
+    }
+    .menu-btn:hover { background: #fed7e2; }
+    .menu-line { width: 18px; height: 2px; background: #e11d59; border-radius: 2px; }
+    .nav-title { font-size: 16px; font-weight: 800; color: #e11d59; }
+    .nav-subtitle { font-size: 11px; color: #888; }
+    .badge { background: #ffe4ea; color: #e11d59; padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; }
+
+    /* Sidebar Drawer Menu */
+    .drawer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); backdrop-filter: blur(2px); z-index: 90; display: none; }
+    .drawer-overlay.open { display: block; }
+    .sidebar {
+      position: fixed; top: 0; left: -280px; width: 270px; height: 100%;
+      background: #ffffff; border-right: 2px solid #ffd4de;
+      z-index: 100; padding: 20px 16px; display: flex; flex-direction: column; gap: 14px;
+      transition: left 0.3s ease-in-out;
+      box-shadow: 4px 0 15px rgba(244, 63, 110, 0.1);
+    }
+    .sidebar.open { left: 0; }
+    .sidebar-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1.5px solid #ffe4ea; padding-bottom: 10px; }
+    .sidebar-header h2 { font-size: 16px; color: #e11d59; font-weight: 800; }
+    .close-btn { background: none; border: none; font-size: 22px; color: #999; cursor: pointer; }
+    .nav-menu { display: flex; flex-direction: column; gap: 6px; }
+    .nav-item {
+      padding: 12px 14px; border-radius: 14px; font-size: 13px; font-weight: bold;
+      color: #666; cursor: pointer; transition: 0.15s; display: flex; align-items: center; gap: 10px;
+    }
+    .nav-item:hover { background: #fff5f7; color: #e11d59; }
+    .nav-item.active { background: #f43f6e; color: #ffffff; }
+
+    /* Main Container & Sections */
+    .content-container { max-width: 780px; margin: 18px auto; padding: 0 14px; }
+    .section-view { display: none; }
+    .section-view.active-view { display: block; animation: fadeIn 0.25s ease-in-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Animated Cover Page */
+    .cover-card {
+      position: relative;
+      background: linear-gradient(135deg, #ffffff 0%, #fff0f5 100%);
+      border: 3px solid #fecdd7;
+      border-radius: 28px;
+      padding: 36px 22px;
+      text-align: center;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      animation: softGlowPulse 4s ease-in-out infinite alternate;
+    }
+    .cover-icon {
+      font-size: 46px;
+      display: inline-block;
+      animation: gentleFloat 3s ease-in-out infinite;
+      user-select: none;
+    }
+    .author-name {
+      color: #e11d59;
+      font-weight: 800;
+      font-size: 18px;
+      text-align: center;
+      letter-spacing: 0.5px;
+      animation: titlePop 0.8s ease-out;
+    }
+    .cutesy-bio {
+      font-size: 13px; color: #666; max-width: 480px; line-height: 1.6;
+      text-align: center; background: #ffffff; border: 1.5px dashed #fecdd7;
+      padding: 12px 18px; border-radius: 16px;
+    }
+    .verse-card {
+      width: 100%; max-width: 520px; background: #ffffff;
+      border: 1.5px solid #fecdd7; border-radius: 16px;
+      padding: 14px 18px; text-align: left;
+      box-shadow: 0 2px 8px rgba(244, 63, 110, 0.03);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .verse-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(244, 63, 110, 0.12);
+    }
+    .verse-ref { font-size: 12px; font-weight: 800; color: #e11d59; margin-bottom: 6px; display: block; text-align: left; }
+    .verse-text { font-size: 12.5px; color: #555; font-style: italic; line-height: 1.5; text-align: center; display: block; padding: 0 8px; }
+
+    @keyframes gentleFloat {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-7px) rotate(2deg); }
+    }
+    @keyframes softGlowPulse {
+      0% { box-shadow: 0 6px 20px rgba(244, 63, 110, 0.08); border-color: #fecdd7; }
+      100% { box-shadow: 0 12px 32px rgba(244, 63, 110, 0.18); border-color: #f43f6e; }
+    }
+    @keyframes titlePop {
+      0% { opacity: 0; transform: scale(0.9); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+    .sparkle-particle {
+      position: absolute; pointer-events: none; font-size: 14px; opacity: 0;
+      animation: sparkleFloat 3s linear infinite;
+    }
+    @keyframes sparkleFloat {
+      0% { transform: translateY(20px) scale(0.5); opacity: 0; }
+      30% { opacity: 0.8; }
+      70% { opacity: 0.8; }
+      100% { transform: translateY(-35px) scale(1.1); opacity: 0; }
+    }
+    
+    /* Cards, Grids, and Stat Boxes */
+    .card { background: #fff; border: 2px solid #ffd2dc; border-radius: 20px; padding: 18px; box-shadow: 0 4px 12px rgba(244, 63, 110, 0.04); margin-bottom: 14px; }
+    .card-title { font-size: 15px; font-weight: bold; color: #e11d59; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+    .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: 10px; }
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+    .stat-box { background: #fff5f7; border: 1.5px solid #fed7e2; border-radius: 14px; padding: 12px; text-align: center; }
+    .stat-box.highlight { background: #ffe4ea; border-color: #fb718f; }
+    .stat-box.safe-pocket { background: #ecfdf5; border-color: #6ee7b7; }
+    .stat-label { font-size: 11px; color: #777; font-weight: 600; }
+    .stat-val { font-size: 18px; font-weight: 800; color: #e11d59; margin-top: 3px; }
+
+    /* Interactive Tabs and Inputs */
+    .tab-strip { display: flex; gap: 8px; margin-bottom: 12px; }
+    .tab-toggle { flex: 1; padding: 10px; border-radius: 12px; border: 1.5px solid #fecdd7; background: #fff; font-weight: bold; font-size: 12px; color: #e11d59; cursor: pointer; }
+    .tab-toggle.selected { background: #f43f6e; color: #fff; border-color: #f43f6e; }
+    .input-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+    input, select { padding: 9px 12px; border: 1.5px solid #ffd4de; border-radius: 12px; font-size: 13px; background: #fffafb; flex: 1; min-width: 120px; }
+    input:focus, select:focus { outline: none; border-color: #f43f6e; background: #fff; }
+    .pink-btn { background: #f43f6e; color: #fff; border: none; padding: 9px 16px; border-radius: 12px; font-weight: bold; font-size: 13px; cursor: pointer; }
+    .pink-btn:hover { background: #e11d59; }
+
+    /* Dynamic Shift Calendar Colors */
+    .cal-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-size: 11px; font-weight: bold; margin-bottom: 6px; }
+    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .cal-cell { 
+      background: #ffffff; 
+      border: 1.5px solid #fed7e2; 
+      border-radius: 12px; 
+      min-height: 54px; 
+      padding: 5px 6px; 
+      font-size: 11px; 
+      cursor: pointer; 
+      display: flex; 
+      flex-direction: column; 
+      justify-content: space-between; 
+      transition: all 0.2s ease;
+    }
+    .cal-cell:hover { transform: translateY(-1px); box-shadow: 0 2px 6px rgba(244, 63, 110, 0.15); }
+
+    /* Calendar Status Theming */
+    .cal-cell.shift-reg { background: #ffe4ea; border-color: #fb718f; }
+    .cal-cell.shift-rest { background: #f3e8ff; border-color: #d8b4fe; }
+    .cal-cell.shift-absent { background: #f3f4f6; border-color: #d1d5db; opacity: 0.75; }
+    .cal-cell.shift-holiday { background: #fef3c7; border-color: #fcd34d; }
+    .cal-cell.shift-sdor { background: #e0f2fe; border-color: #7dd3fc; }
+    .cal-cell.empty { background: transparent; border: none; cursor: default; }
+
+    /* Tables & Drawer */
+    table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; }
+    th { background: #ffe4ea; color: #e11d59; padding: 8px; text-align: left; }
+    td { padding: 8px; border-bottom: 1px solid #ffe4ea; }
+    .del-btn { background: none; border: none; color: #fb718f; font-weight: bold; cursor: pointer; font-size: 16px; }
+    #attDrawer { background: #fff5f7; border: 1.5px solid #fbb6ce; border-radius: 14px; padding: 14px; margin-top: 12px; display: none; }
+
+    /* Piggy Bank Pop-up Coin Clink Animation */
+    .piggy-modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.35); backdrop-filter: blur(3px);
+      display: none; justify-content: center; align-items: center; z-index: 999;
+    }
+    .piggy-modal-overlay.show { display: flex; animation: modalFadeIn 0.25s ease-out; }
+    .piggy-modal-box {
+      background: #ffffff; border: 3px solid #fecdd7; border-radius: 28px;
+      padding: 26px 20px; text-align: center; max-width: 290px; width: 85%;
+      box-shadow: 0 15px 35px rgba(244, 63, 110, 0.2);
+    }
+    .piggy-anim-stage { position: relative; height: 95px; margin-bottom: 8px; }
+    .anim-coin {
+      font-size: 32px; position: absolute; left: 50%; transform: translateX(-50%); top: -5px;
+      opacity: 0;
+    }
+    .piggy-modal-overlay.show .anim-coin {
+      animation: coinDrop 1s cubic-bezier(0.5, 0, 0.75, 0) forwards;
+    }
+    .anim-piggy {
+      font-size: 60px; position: absolute; left: 50%; bottom: 0; transform: translateX(-50%);
+    }
+    .piggy-modal-overlay.show .anim-piggy {
+      animation: piggyHappy 1.2s ease-in-out forwards;
+    }
+    @keyframes modalFadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes coinDrop {
+      0% { top: -10px; opacity: 1; transform: translateX(-50%) scale(1.2); }
+      60% { top: 40px; opacity: 1; transform: translateX(-50%) scale(0.9); }
+      75% { top: 50px; opacity: 0; transform: translateX(-50%) scale(0.4); }
+      100% { opacity: 0; }
+    }
+    @keyframes piggyHappy {
+      0% { transform: translateX(-50%) scale(1); }
+      40% { transform: translateX(-50%) scale(1.1) rotate(0deg); }
+      55% { transform: translateX(-50%) scale(1.2) rotate(-8deg); }
+      70% { transform: translateX(-50%) scale(1.2) rotate(8deg); }
+      85% { transform: translateX(-50%) scale(1.05) rotate(-3deg); }
+      100% { transform: translateX(-50%) scale(1) rotate(0deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="drawerOverlay" class="drawer-overlay" onclick="toggleMenu()"></div>
+
+  <!-- Sidebar Navigation Drawer -->
+  <nav id="sideNav" class="sidebar">
+    <div class="sidebar-header">
+      <h2 onclick="navigateTo('cover', null)" style="cursor: pointer;" title="Return to Cover Page">🎀 Diary Menu</h2>
+      <button class="close-btn" onclick="toggleMenu()">&times;</button>
+    </div>
+    <div class="nav-menu">
+      <div class="nav-item" onclick="navigateTo('payday', this)"><span>🌸</span> Payday & Budget Hub</div>
+      <div class="nav-item" onclick="navigateTo('calendar', this)"><span>📅</span> Attendance & OT Tracker</div>
+      <div class="nav-item" onclick="navigateTo('savings', this)"><span>🐷</span> Piggy Bank Savings Vault</div>
+      <div class="nav-item" onclick="navigateTo('salaryMatrix', this)"><span>📑</span> Salary & OT Matrix</div>
+    </div>
+  </nav>
+
+  <!-- Top Sticky Bar -->
+  <header class="top-nav">
+    <div class="nav-left">
+      <button class="menu-btn" onclick="toggleMenu()" title="Open Menu">
+        <span class="menu-line"></span>
+        <span class="menu-line"></span>
+        <span class="menu-line"></span>
+      </button>
+      <div>
+        <div class="nav-title" id="currentSectionTitle">💌 Little Pocket Diary</div>
+        <div class="nav-subtitle">Personal Budget & Payday Journal</div>
+      </div>
+    </div>
+    <div id="paydayBadge" class="badge">Loading Payday...</div>
+  </header>
+
+  <main class="content-container">
+  
+  <!-- 0. CUTESY ANIMATED COVER PAGE -->
+    <div id="view-cover" class="section-view active-view">
+      <div class="cover-card">
+        <!-- Floating Sparkles -->
+        <span class="sparkle-particle" style="left: 14%; top: 20%; animation-delay: 0s;">✨</span>
+        <span class="sparkle-particle" style="right: 16%; top: 25%; animation-delay: 1.4s;">🌸</span>
+        <span class="sparkle-particle" style="left: 20%; bottom: 22%; animation-delay: 0.7s;">✨</span>
+        <span class="sparkle-particle" style="right: 18%; bottom: 18%; animation-delay: 2.1s;">💖</span>
+
+        <div class="cover-icon">🌸📖🎀</div>
+        <h1 style="font-size:26px; font-weight:900; color:#e11d59; letter-spacing:-0.5px;">Little Pocket Diary</h1>
+        
+        <div class="author-name">Engr. Maryfaith</div>
+
+        <div class="cutesy-bio">
+          "Just an engineering girlie taking small steps toward big goals, with honest work and a well-budgeted life. 🎀✨"
+        </div>
+
+        <!-- Proverbs 21:5 -->
+        <div class="verse-card">
+          <span class="verse-ref">Proverbs 21:5</span>
+          <span class="verse-text">
+            “The plans of the diligent lead surely to abundance, but everyone who is hasty comes only to poverty.”
+          </span>
+        </div>
+
+        <!-- Proverbs 3:9 -->
+        <div class="verse-card">
+          <span class="verse-ref">Proverbs 3:9</span>
+          <span class="verse-text">
+            “Honor the Lord with your wealth and with the firstfruits of all your produce.”
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 1. PAYDAY & BUDGET HUB -->
+    <div id="view-payday" class="section-view">
+      
+      <div class="tab-strip">
+        <button id="tab10" class="tab-toggle selected" onclick="selectCutoff('10th')">10th Payday (16th–End Period)</button>
+        <button id="tab25" class="tab-toggle" onclick="selectCutoff('25th')">25th Payday (1st–15th Period)</button>
+      </div>
+
+      <!-- Financial Snapshot Cards (Exact ₱10,537.50 Base) -->
+      <div class="card">
+        <div class="card-title">
+          <span>💖 Payday & Budget Summary</span>
+          <span id="activePeriodLabel" style="font-size:11px; color:#888;"></span>
+        </div>
+        <div class="grid-4">
+          <div class="stat-box">
+            <div class="stat-label">Estimated Salary</div>
+            <div id="estCutoffSahod" class="stat-val">₱10,537.50</div>
+            <p id="otBonusNote" style="font-size:10px; color:#e11d59; font-weight:bold; margin-top:2px;">+₱0.00 OT/Prem</p>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Extra Inflow</div>
+            <div id="totalExtraInflow" class="stat-val" style="color:#0284c7;">+₱0.00</div>
+            <p style="font-size:9px; color:#888; margin-top:2px;">Family / Gifts / Misc</p>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Total Expenses</div>
+            <div id="totalGastosCutoff" class="stat-val" style="color:#f43f6e;">₱0.00</div>
+            <p style="font-size:9px; color:#888; margin-top:2px;">Bills + Daily Logs</p>
+          </div>
+          <div class="stat-box safe-pocket">
+            <div class="stat-label" style="color:#047857;">Safe Spending Pocket</div>
+            <div id="tirangPeraDisplay" class="stat-val" style="color:#047857; font-size:18px;">₱10,537.50</div>
+            <p id="dailyBudgetPill" style="font-size:10px; font-weight:bold; color:#059669; margin-top:2px;">₱0.00 / day</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fixed Commitments (Rent vs Utilities) -->
+      <div class="card">
+        <div class="card-title">📌 Fixed Bills Allocated for this Cutoff</div>
+        <div id="rentSection" style="display:block;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <div>
+              <strong style="color:#e11d59; font-size:13px;">🏠 House Rent (Due every 15th)</strong>
+              <p style="font-size:11px; color:#777;">Auto-allocated from the 10th Payday for rent settlement.</p>
+            </div>
+            <div style="display:flex; gap:6px; align-items:center;">
+              <span style="font-size:12px; font-weight:bold;">₱</span>
+              <input type="number" id="rentInput" value="3000" style="max-width:110px; padding:6px 10px;" onchange="updateRentAmount(this.value)" />
+            </div>
+          </div>
+        </div>
+        <div id="utilSection" style="display:none;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <div>
+              <strong style="color:#e11d59; font-size:13px;">⚡ Utilities & Bills (Due every 1st)</strong>
+              <p style="font-size:11px; color:#777;">Auto-allocated from the 25th Payday for monthly utilities.</p>
+            </div>
+            <div style="display:flex; gap:6px; align-items:center;">
+              <span style="font-size:12px; font-weight:bold;">₱</span>
+              <input type="number" id="utilInput" value="1500" style="max-width:110px; padding:6px 10px;" onchange="updateUtilAmount(this.value)" />
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Extra Inflow / Family Allowance Logger -->
+      <div class="card" style="border-color:#bae6fd; background:#f8fafc;">
+        <div class="card-title" style="color:#0284c7;">
+          <span>🎁 Extra Inflow & Allowances (Family / Gifts)</span>
+        </div>
+        <div class="input-row">
+          <input type="text" id="extraDesc" placeholder="Source (e.g., Mom Allowance, Gift, Side Income)" />
+          <input type="number" id="extraAmount" placeholder="Amount (₱)" />
+          <button class="pink-btn" style="background:#0284c7;" onclick="saveExtraIncome()">Add Income</button>
+        </div>
+        <table>
+          <thead>
+            <tr><th>Description</th><th>Period</th><th style="text-align:right;">Amount</th><th></th></tr>
+          </thead>
+          <tbody id="extraIncomeRows"></tbody>
+        </table>
+      </div>
+
+      <!-- Daily Expense Logger -->
+      <div class="card">
+        <div class="card-title">🛒 Log Daily Expenses</div>
+        <div class="input-row">
+          <input type="text" id="expDesc" placeholder="Item name (e.g., Groceries, Coffee, Commute)" />
+          <input type="number" id="expCost" placeholder="Amount (₱)" />
+          <select id="expCat">
+            <option value="Groceries">🍓 Groceries & Food</option>
+            <option value="Utilities">⚡ Additional Bills</option>
+            <option value="Personal">✨ Personal Care & Leisure</option>
+            <option value="Misc">📦 Miscellaneous</option>
+          </select>
+          <button class="pink-btn" onclick="saveExpense()">Add Expense</button>
+        </div>
+
+        <table>
+          <thead>
+            <tr><th>Item</th><th>Category</th><th>Period</th><th style="text-align:right;">Cost</th><th></th></tr>
+          </thead>
+          <tbody id="expenseRows"></tbody>
+        </table>
+      </div>
+
+    </div>
+
+    <!-- 2. ATTENDANCE & DYNAMIC OT CALENDAR (SUNDAY START) -->
+    <div id="view-calendar" class="section-view">
+      <div class="card">
+        <div class="card-title">
+          <span>📅 Attendance & OT Calendar</span>
+          <div style="display:flex; gap:6px;">
+            <button class="pink-btn" style="padding:4px 8px; font-size:11px;" onclick="moveMonth(-1)">◀</button>
+            <span id="calLabel" style="font-size:12px; padding:4px 6px; font-weight:bold; align-self:center;">Month</span>
+            <button class="pink-btn" style="padding:4px 8px; font-size:11px;" onclick="moveMonth(1)">▶</button>
+          </div>
+        </div>
+
+        <div class="cal-weekdays">
+          <div style="color:#e11d59; font-weight:800; background:#ffe4ea; border-radius:6px; padding:2px 0;">Su ✨</div>
+          <div style="color:#fb718f;">Mo</div>
+          <div style="color:#fb718f;">Tu</div>
+          <div style="color:#fb718f;">We</div>
+          <div style="color:#fb718f;">Th</div>
+          <div style="color:#fb718f;">Fr</div>
+          <div style="color:#888;">Sa 🛌</div>
+        </div>
+        <div id="calGrid" class="cal-grid"></div>
+
+        <!-- Inline Day Shift Details Drawer -->
+        <div id="attDrawer">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <span style="font-size:13px; font-weight:bold; color:#e11d59;">Log Shift: <strong id="selectedDateText"></strong></span>
+            <button onclick="closeAttDrawer()" style="border:none; background:none; font-size:18px; color:#999; cursor:pointer;">&times;</button>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <div>
+              <label style="font-size:11px; font-weight:bold; color:#777; display:block; margin-bottom:4px;">Work Shift / Day Type:</label>
+              <select id="dayTypeSelect" onchange="updateOtInputs()">
+                <option value="REG12">12-Hour Regular Shift (4-Day Work Week)</option>
+                <option value="REG8">8-Hour Regular Shift (5-Day Work Week)</option>
+                <option value="SDOR">SDOR - Scheduled Day Off Worked (130%)</option>
+                <option value="SHR">SHR - Special Holiday Regular (130%)</option>
+                <option value="SHSR">SHSR - Special Holiday on Scheduled Day Off (150%)</option>
+                <option value="LHR2">LHR2 - Legal Holiday Regular Worked (200%)</option>
+                <option value="LHSR">LHSR - Legal Holiday on Scheduled Day Off (260%)</option>
+                <option value="REST">Rest Day / Day Off (No shift)</option>
+                <option value="ABSENT">Absent / Unpaid Leave</option>
+              </select>
+            </div>
+
+            <!-- Overtime Toggle & Input -->
+            <div style="display:flex; align-items:center; gap:8px;">
+              <input type="checkbox" id="hasOtCheck" onchange="updateOtInputs()" style="width:18px; height:18px; flex:none;" />
+              <label for="hasOtCheck" style="font-size:12px; font-weight:bold; color:#444;">Includes Overtime (OT)?</label>
+            </div>
+
+            <div id="otHoursContainer" style="display:none; background:#fff; border:1px solid #fecdd7; padding:10px; border-radius:12px;">
+              <label style="font-size:11px; font-weight:bold; color:#777; display:block; margin-bottom:4px;">Overtime Duration (Hours):</label>
+              <input type="number" id="otHoursInput" value="1" min="0.5" max="12" step="0.5" placeholder="e.g., 1, 2, 2.5" />
+              <p id="otRateDescription" style="font-size:10px; color:#e11d59; font-weight:bold; margin-top:4px;">ROT (125%): ₱137.78/hr</p>
+            </div>
+
+            <!-- Night Differential Toggle & Input -->
+            <div style="display:flex; align-items:center; gap:8px;">
+              <input type="checkbox" id="hasNsdCheck" onchange="updateOtInputs()" style="width:18px; height:18px; flex:none;" />
+              <label for="hasNsdCheck" style="font-size:12px; font-weight:bold; color:#444;">Includes Night Differential (10PM–6AM)?</label>
+            </div>
+
+            <div id="nsdHoursContainer" style="display:none; background:#fff; border:1px solid #fecdd7; padding:10px; border-radius:12px;">
+              <label style="font-size:11px; font-weight:bold; color:#777; display:block; margin-bottom:4px;">Night Differential Duration (Hours):</label>
+              <input type="number" id="nsdHoursInput" value="4" min="0.5" max="8" step="0.5" placeholder="e.g., 4" />
+              <p style="font-size:10px; color:#888; margin-top:2px;">Differential Rate: +10% to 26% based on shift classification.</p>
+            </div>
+
+            <button class="pink-btn" style="margin-top:6px;" onclick="saveDayAttendance()">Save Shift & OT 🌸</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    
+    <!-- 3. PIGGY BANK SAVINGS VAULT -->
+    <div id="view-savings" class="section-view">
+      <div class="card">
+        <div class="card-title">🐷 Piggy Bank Savings Vault</div>
+        <div class="stat-box highlight" style="margin-bottom:14px;">
+          <div class="stat-label">Total Vault Savings</div>
+          <div id="vaultTotal" class="stat-val" style="font-size:26px;">₱0.00</div>
+        </div>
+        <div class="input-row">
+          <input type="number" id="vaultAmount" placeholder="Deposit amount (₱)" />
+          <input type="text" id="vaultNote" placeholder="Destination (e.g., Seabank, Maya Vault)" />
+          <button class="pink-btn" onclick="saveToVault()">Deposit</button>
+        </div>
+        <p style="font-size:12px; font-weight:bold; color:#e11d59; margin-top:10px; margin-bottom:6px;">Recent Vault Deposits:</p>
+        <div id="vaultList" style="display:flex; flex-direction:column; gap:6px;"></div>
+
+        <!-- Piggy Deposit Pop-up Modal -->
+        <div id="piggyModal" class="piggy-modal-overlay">
+          <div class="piggy-modal-box">
+            <div class="piggy-anim-stage">
+              <div class="anim-coin">🪙</div>
+              <div class="anim-piggy">🐷</div>
+            </div>
+            <div style="font-size:18px; font-weight:900; color:#e11d59; margin-top:6px;">Clink! Clink! ✨</div>
+            <div id="piggySuccessMsg" style="font-size:13px; font-weight:bold; color:#047857; margin:6px 0;">+₱0.00 Added!</div>
+            <div style="font-size:11px; color:#777;">Small savings today, big financial freedom tomorrow! 🌸</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 4. COMBINED SALARY BREAKDOWN & OT MATRIX (100% Exact Portal Values) -->
+    <div id="view-salaryMatrix" class="section-view">
+      
+      <!-- Top: Salary & Statutory Breakdown -->
+      <div class="card">
+        <div class="card-title">🎀 Monthly Compensation & Statutory Overview</div>
+        <div class="grid-2">
+          <div class="stat-box">
+            <div class="stat-label">Gross Monthly Base</div>
+            <div class="stat-val">₱23,000.00</div>
+            <p style="font-size:10px; color:#888; margin-top:2px;">₱11,500.00 base per semi-monthly cutoff</p>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Withholding Tax (WTax)</div>
+            <div class="stat-val" style="color:#10b981;">₱0.00</div>
+            <p style="font-size:10px; color:#10b981; font-weight:bold; margin-top:2px;">TRAIN Law Exempt</p>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Mandatory Deductions</div>
+            <div class="stat-val" style="color:#fb718f;">₱1,925.00</div>
+            <p style="font-size:10px; color:#888; margin-top:2px;">SSS ₱1,150 | PhilHealth ₱575 | HDMF ₱200</p>
+          </div>
+          <div class="stat-box highlight">
+            <div class="stat-label">Standard Net Take-Home</div>
+            <div class="stat-val">₱21,075.00</div>
+            <p style="font-size:10px; color:#e11d59; font-weight:bold; margin-top:2px;">₱10,537.50 base per cutoff</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom: Official OT Matrix Reference -->
+      <div class="card">
+        <div class="card-title">📑 Official Company Overtime Payment Matrix</div>
+        <p style="font-size:11px; color:#777; margin-bottom:10px;">Base Hourly Rate: <strong>₱110.22/hr</strong> (Standard 48 hrs/week, 313 factor). Multipliers are applied automatically:</p>
+        <table>
+          <thead>
+            <tr><th>Code</th><th>Description</th><th>Rate</th><th>Computed Rate</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>ROT</strong></td><td>Regular Overtime</td><td>125%</td><td>₱137.78/hr</td></tr>
+            <tr><td><strong>NSD</strong></td><td>Night Shift Differential</td><td>10%</td><td>+₱11.02/hr</td></tr>
+            <tr><td><strong>SDOR</strong></td><td>Scheduled Day Off - Regular</td><td>130%</td><td>₱1,146.33/day</td></tr>
+            <tr><td><strong>SDOT</strong></td><td>Scheduled Day Off - Overtime</td><td>169%</td><td>₱186.27/hr</td></tr>
+            <tr><td><strong>SHR</strong></td><td>Special Holiday - Regular</td><td>130%</td><td>₱1,146.33/day</td></tr>
+            <tr><td><strong>LHR2</strong></td><td>Legal Holiday - Regular (Worked)</td><td>200%</td><td>₱1,763.58/day</td></tr>
+            <tr><td><strong>LHOT</strong></td><td>Legal Holiday - Overtime</td><td>260%</td><td>₱286.57/hr</td></tr>
+            <tr><td><strong>LHSR</strong></td><td>Legal Holiday - Scheduled Day Off</td><td>260%</td><td>₱2,292.65/day</td></tr>
+            <tr><td><strong>SHSR</strong></td><td>Special Holiday - Scheduled Day Off</td><td>150%</td><td>₱1,322.69/day</td></tr>
+            <tr><td><strong>SSOT</strong></td><td>Special Holiday - Sched Day Off OT</td><td>195%</td><td>₱214.93/hr</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+
+  </main>
+  
+  <script>
+    // --- Global Application State ---
+    var activeCutoff = '10th';
+    var rentAmount = 3000;
+    var utilAmount = 1500;
+    var expenses = [];
+    var extraInflows = [];
+    var vaultDeposits = [];
+    var attendance = {};
+    var selectedDateKey = null;
+
+    var today = new Date();
+    var calYear = today.getFullYear();
+    var calMonth = today.getMonth();
+
+    // --- LocalStorage Persistence Engine ---
+    function loadSavedData() {
+      try {
+        var exp = localStorage.getItem('pk_exp');
+        if (exp) expenses = JSON.parse(exp);
+        var ext = localStorage.getItem('pk_ext');
+        if (ext) extraInflows = JSON.parse(ext);
+        var vlt = localStorage.getItem('pk_vlt');
+        if (vlt) vaultDeposits = JSON.parse(vlt);
+        var att = localStorage.getItem('pk_att');
+        if (att) attendance = JSON.parse(att);
+        var r = localStorage.getItem('pk_rent');
+        if (r) { rentAmount = parseFloat(r); document.getElementById('rentInput').value = r; }
+        var u = localStorage.getItem('pk_util');
+        if (u) { utilAmount = parseFloat(u); document.getElementById('utilInput').value = u; }
+      } catch (e) {
+        console.error("Storage load failed", e);
+      }
+    }
+
+    function persist(key, val) {
+      try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {}
+    }
+
+    // --- Navigation & Drawer Control ---
+    function toggleMenu() {
+      document.getElementById('sideNav').classList.toggle('open');
+      document.getElementById('drawerOverlay').classList.toggle('open');
+    }
+
+    function navigateTo(viewId, element) {
+      document.querySelectorAll('.section-view').forEach(function(v) { v.classList.remove('active-view'); });
+      document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
+
+      var targetView = document.getElementById('view-' + viewId);
+      if (targetView) targetView.classList.add('active-view');
+      if (element) element.classList.add('active');
+
+      var titles = {
+        'cover': '💌 Little Pocket Diary',
+        'payday': '🌸 Payday & Budget Hub',
+        'calendar': '📅 Attendance & OT Tracker',
+        'savings': '🐷 Piggy Bank Savings Vault',
+        'salaryMatrix': '📑 Salary & OT Matrix'
+      };
+      document.getElementById('currentSectionTitle').innerText = titles[viewId] || '💌 Little Pocket Diary';
+      toggleMenu();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // --- Cutoff Switcher ---
+    function selectCutoff(cutoff) {
+      activeCutoff = cutoff;
+      document.getElementById('tab10').classList.toggle('selected', cutoff === '10th');
+      document.getElementById('tab25').classList.toggle('selected', cutoff === '25th');
+
+      document.getElementById('rentSection').style.display = (cutoff === '10th') ? 'block' : 'none';
+      document.getElementById('utilSection').style.display = (cutoff === '25th') ? 'block' : 'none';
+
+      refreshHub();
+    }
+
+    function updateRentAmount(val) {
+      rentAmount = parseFloat(val) || 0;
+      localStorage.setItem('pk_rent', rentAmount);
+      refreshHub();
+    }
+
+    function updateUtilAmount(val) {
+      utilAmount = parseFloat(val) || 0;
+      localStorage.setItem('pk_util', utilAmount);
+      refreshHub();
+    }
+
+    // --- Shift & OT Salary Computation Engine ---
+    function computeShiftEarnings(rec) {
+      var hourlyBase = 110.22;
+      var total = 0;
+
+      // Base premium additions for special days
+      if (rec.type === 'SDOR') total += (hourlyBase * 8 * 1.30);
+      else if (rec.type === 'SHR') total += (hourlyBase * 8 * 1.30);
+      else if (rec.type === 'SHSR') total += (hourlyBase * 8 * 1.50);
+      else if (rec.type === 'LHR2') total += (hourlyBase * 8 * 2.00);
+      else if (rec.type === 'LHSR') total += (hourlyBase * 8 * 2.60);
+
+      // Overtime Multipliers
+      if (rec.otHours && rec.otHours > 0) {
+        var otRate = hourlyBase * 1.25; // default ROT
+        if (rec.type === 'SDOR') otRate = hourlyBase * 1.69;
+        else if (rec.type === 'SHR') otRate = hourlyBase * 1.69;
+        else if (rec.type === 'SHSR') otRate = hourlyBase * 1.95;
+        else if (rec.type === 'LHR2') otRate = hourlyBase * 2.60;
+        else if (rec.type === 'LHSR') otRate = hourlyBase * 2.60;
+        total += (rec.otHours * otRate);
+      }
+
+      // Night Shift Differential (+10%)
+      if (rec.nsdHours && rec.nsdHours > 0) {
+        total += (rec.nsdHours * (hourlyBase * 0.10));
+      }
+
+      return total;
+    }
+
+    // --- Dynamic Hub & Budget Computation (Exact Values) ---
+    function refreshHub() {
+      // Official exact take-home: ₱11,500 Gross - ₱962.50 Statutory Deductions
+      var baseCutoffNet = 10537.50;
+      var otSum = 0;
+
+      for (var k in attendance) {
+        var parts = k.split('-');
+        var day = parseInt(parts[2], 10);
+        var belongsToCutoff = false;
+
+        // 10th Payday covers 16th to end of month; 25th Payday covers 1st to 15th
+        if (activeCutoff === '10th' && day >= 16) belongsToCutoff = true;
+        if (activeCutoff === '25th' && day <= 15) belongsToCutoff = true;
+
+        if (belongsToCutoff) {
+          otSum += computeShiftEarnings(attendance[k]);
+        }
+      }
+
+      var totalSahodEst = baseCutoffNet + otSum;
+      document.getElementById('estCutoffSahod').innerText = '₱' + totalSahodEst.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      document.getElementById('otBonusNote').innerText = '+₱' + otSum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' OT/Prem';
+
+      // Extra Inflows for this Cutoff
+      var extraSum = 0;
+      var extraTbody = document.getElementById('extraIncomeRows');
+      extraTbody.innerHTML = '';
+      extraInflows.forEach(function(item, idx) {
+        if (item.cutoff === activeCutoff) {
+          extraSum += item.amount;
+          var tr = document.createElement('tr');
+          tr.innerHTML = '<td><strong>' + item.desc + '</strong></td>' +
+            '<td><span class="badge" style="padding:2px 8px; font-size:10px;">' + item.cutoff + '</span></td>' +
+            '<td style="text-align:right; color:#0284c7; font-weight:bold;">+₱' + item.amount.toFixed(2) + '</td>' +
+            '<td style="text-align:right;"><button class="del-btn" onclick="removeExtraIncome(' + idx + ')">&times;</button></td>';
+          extraTbody.appendChild(tr);
+        }
+      });
+      document.getElementById('totalExtraInflow').innerText = '+₱' + extraSum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+      // Expenses for this Cutoff
+      var fixedBill = (activeCutoff === '10th') ? rentAmount : utilAmount;
+      var dailyExpSum = 0;
+      var expTbody = document.getElementById('expenseRows');
+      expTbody.innerHTML = '';
+      expenses.forEach(function(item, idx) {
+        if (item.cutoff === activeCutoff) {
+          dailyExpSum += item.cost;
+          var tr = document.createElement('tr');
+          tr.innerHTML = '<td><strong>' + item.desc + '</strong></td>' +
+            '<td><span class="badge" style="padding:2px 8px; font-size:10px;">' + item.cat + '</span></td>' +
+            '<td>' + item.cutoff + '</td>' +
+            '<td style="text-align:right; color:#f43f6e; font-weight:bold;">-₱' + item.cost.toFixed(2) + '</td>' +
+            '<td style="text-align:right;"><button class="del-btn" onclick="removeExpense(' + idx + ')">&times;</button></td>';
+          expTbody.appendChild(tr);
+        }
+      });
+
+      var totalGastos = fixedBill + dailyExpSum;
+      document.getElementById('totalGastosCutoff').innerText = '₱' + totalGastos.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+      // Safe Spending Pocket = Estimated Salary + Extra Inflow - Total Expenses
+      var safePocket = (totalSahodEst + extraSum) - totalGastos;
+      var pocketDisp = document.getElementById('tirangPeraDisplay');
+      pocketDisp.innerText = '₱' + safePocket.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      pocketDisp.style.color = (safePocket >= 0) ? '#047857' : '#e11d59';
+
+      var daysRemaining = (activeCutoff === '10th') ? 15 : 15;
+      var dailyAllowance = safePocket > 0 ? (safePocket / daysRemaining) : 0;
+      document.getElementById('dailyBudgetPill').innerText = '₱' + dailyAllowance.toFixed(2) + ' / day for ' + daysRemaining + ' days';
+
+      document.getElementById('activePeriodLabel').innerText = (activeCutoff === '10th') ? '16th to End Period' : '1st to 15th Period';
+    }
+
+    // --- Extra Inflow Functions ---
+    function saveExtraIncome() {
+      var d = document.getElementById('extraDesc').value.trim();
+      var a = parseFloat(document.getElementById('extraAmount').value);
+      if (!d || isNaN(a) || a <= 0) return;
+      extraInflows.push({ desc: d, amount: a, cutoff: activeCutoff });
+      persist('pk_ext', extraInflows);
+      document.getElementById('extraDesc').value = '';
+      document.getElementById('extraAmount').value = '';
+      refreshHub();
+    }
+
+    function removeExtraIncome(idx) {
+      extraInflows.splice(idx, 1);
+      persist('pk_ext', extraInflows);
+      refreshHub();
+    }
+
+    // --- Expense Functions ---
+    function saveExpense() {
+      var d = document.getElementById('expDesc').value.trim();
+      var c = parseFloat(document.getElementById('expCost').value);
+      var cat = document.getElementById('expCat').value;
+      if (!d || isNaN(c) || c <= 0) return;
+      expenses.push({ desc: d, cost: c, cat: cat, cutoff: activeCutoff });
+      persist('pk_exp', expenses);
+      document.getElementById('expDesc').value = '';
+      document.getElementById('expCost').value = '';
+      refreshHub();
+    }
+
+    function removeExpense(idx) {
+      expenses.splice(idx, 1);
+      persist('pk_exp', expenses);
+      refreshHub();
+    }
+
+    // --- Piggy Bank Vault with Animated Pop-up Trigger ---
+    function refreshVault() {
+      var total = 0;
+      var list = document.getElementById('vaultList');
+      list.innerHTML = '';
+      vaultDeposits.forEach(function(item, idx) {
+        total += item.amount;
+        var row = document.createElement('div');
+        row.style.display = 'flex';
+        row.style.justifyContent = 'space-between';
+        row.style.alignItems = 'center';
+        row.style.padding = '8px 12px';
+        row.style.background = '#fff5f7';
+        row.style.borderRadius = '10px';
+        row.style.border = '1px solid #ffd4de';
+        row.innerHTML = '<div><strong style="color:#e11d59;">₱' + item.amount.toFixed(2) + '</strong> ' +
+          '<span style="font-size:11px; color:#666;">- ' + (item.note || 'Savings Deposit') + '</span></div>' +
+          '<button class="del-btn" onclick="removeVault(' + idx + ')">&times;</button>';
+        list.appendChild(row);
+      });
+      document.getElementById('vaultTotal').innerText = '₱' + total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function showPiggyAnimation(amount) {
+      var modal = document.getElementById('piggyModal');
+      document.getElementById('piggySuccessMsg').innerText = '+₱' + amount.toFixed(2) + ' Saved!';
+      modal.classList.add('show');
+      setTimeout(function() {
+        modal.classList.remove('show');
+      }, 1800);
+    }
+
+    function saveToVault() {
+      var a = parseFloat(document.getElementById('vaultAmount').value);
+      var n = document.getElementById('vaultNote').value.trim();
+      if (isNaN(a) || a <= 0) return;
+      vaultDeposits.push({ amount: a, note: n, date: new Date().toISOString() });
+      persist('pk_vlt', vaultDeposits);
+      document.getElementById('vaultAmount').value = '';
+      document.getElementById('vaultNote').value = '';
+      refreshVault();
+      showPiggyAnimation(a);
+    }
+
+    function removeVault(idx) {
+      vaultDeposits.splice(idx, 1);
+      persist('pk_vlt', vaultDeposits);
+      refreshVault();
+    }
+
+    // --- Dynamic Color-Coded Calendar (Sunday Start) ---
+    function renderCalendar() {
+      var months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+      document.getElementById('calLabel').innerText = months[calMonth] + " " + calYear;
+      var grid = document.getElementById('calGrid');
+      grid.innerHTML = '';
+
+      var firstDay = new Date(calYear, calMonth, 1).getDay(); // 0 = Sunday
+      var daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+
+      for (var i = 0; i < firstDay; i++) {
+        var blank = document.createElement('div');
+        blank.className = 'cal-cell empty';
+        grid.appendChild(blank);
+      }
+
+      for (var d = 1; d <= daysInMonth; d++) {
+        (function(dayNum) {
+          var dateObj = new Date(calYear, calMonth, dayNum);
+          var dayOfWeek = dateObj.getDay();
+          var k = calYear + '-' + String(calMonth + 1).padStart(2, '0') + '-' + String(dayNum).padStart(2, '0');
+          var record = attendance[k];
+
+          var cls = 'cal-cell';
+          var badgeText = '';
+          var badgeColor = '#e11d59';
+
+          if (record) {
+            if (record.type === 'REST') {
+              cls += ' shift-rest';
+              badgeText = '🛌 Off';
+              badgeColor = '#7e22ce';
+            } else if (record.type === 'ABSENT') {
+              cls += ' shift-absent';
+              badgeText = '✖ Absent';
+              badgeColor = '#4b5563';
+            } else if (record.type === 'SDOR') {
+              cls += ' shift-sdor';
+              badgeText = record.otHours > 0 ? '💼 +' + record.otHours + 'h' : '💼 SDOR';
+              badgeColor = '#0369a1';
+            } else if (record.type === 'SHR' || record.type === 'SHSR' || record.type === 'LHR2' || record.type === 'LHSR') {
+              cls += ' shift-holiday';
+              badgeText = record.otHours > 0 ? '⭐ +' + record.otHours + 'h' : '⭐ ' + record.type;
+              badgeColor = '#b45309';
+            } else if (record.type === 'REG12' || record.type === 'REG8' || record.type === 'REG') {
+              cls += ' shift-reg';
+              badgeText = record.otHours > 0 ? '✨ +' + record.otHours + 'h' : (record.type === 'REG12' ? '🌸 12h' : '🌸 8h');
+              badgeColor = '#be123c';
+            }
+          } else if (dayOfWeek === 0) {
+            badgeText = 'Start';
+            badgeColor = '#e11d59';
+          }
+
+          var dateNumColor = (dayOfWeek === 0) ? '#e11d59' : '#1f2937';
+
+          var cell = document.createElement('div');
+          cell.className = cls;
+          cell.innerHTML = '<span style="font-weight:800; font-size:13px; color:' + dateNumColor + ';">' + dayNum + '</span>' + 
+            '<span style="font-size:9px; color:' + badgeColor + '; font-weight:800; letter-spacing:-0.2px;">' + badgeText + '</span>';
+
+          cell.onclick = function() {
+            selectedDateKey = k;
+            document.getElementById('selectedDateText').innerText = k + (dayOfWeek === 0 ? ' (Sunday - Week Start)' : '');
+            var defaultType = (dayOfWeek === 5 || dayOfWeek === 6) ? 'REST' : 'REG12';
+            document.getElementById('dayTypeSelect').value = record ? record.type : defaultType;
+            document.getElementById('hasOtCheck').checked = record ? (record.otHours > 0) : false;
+            document.getElementById('otHoursInput').value = record && record.otHours ? record.otHours : 1;
+            document.getElementById('hasNsdCheck').checked = record ? (record.nsdHours > 0) : false;
+            document.getElementById('nsdHoursInput').value = record && record.nsdHours ? record.nsdHours : 4;
+            updateOtInputs();
+            document.getElementById('attDrawer').style.display = 'block';
+          };
+          grid.appendChild(cell);
+        })(d);
+      }
+    }
+
+    function moveMonth(delta) {
+      calMonth += delta;
+      if (calMonth < 0) { calMonth = 11; calYear--; }
+      else if (calMonth > 11) { calMonth = 0; calYear++; }
+      renderCalendar();
+    }
+
+    function updateOtInputs() {
+      var isOt = document.getElementById('hasOtCheck').checked;
+      var isNsd = document.getElementById('hasNsdCheck').checked;
+      document.getElementById('otHoursContainer').style.display = isOt ? 'block' : 'none';
+      document.getElementById('nsdHoursContainer').style.display = isNsd ? 'block' : 'none';
+
+      var type = document.getElementById('dayTypeSelect').value;
+      var desc = document.getElementById('otRateDescription');
+      if (type === 'SDOR' || type === 'SHR') desc.innerText = 'Rate: 169% (₱186.27/hr)';
+      else if (type === 'SHSR') desc.innerText = 'Rate: 195% (₱214.93/hr)';
+      else if (type === 'LHR2' || type === 'LHSR') desc.innerText = 'Rate: 260% (₱286.57/hr)';
+      else desc.innerText = 'Regular OT Rate: 125% (₱137.78/hr)';
+    }
+
+    function closeAttDrawer() {
+      document.getElementById('attDrawer').style.display = 'none';
+    }
+
+    function saveDayAttendance() {
+      if (!selectedDateKey) return;
+      var type = document.getElementById('dayTypeSelect').value;
+      var hasOt = document.getElementById('hasOtCheck').checked;
+      var otH = hasOt ? parseFloat(document.getElementById('otHoursInput').value) || 0 : 0;
+      var hasNsd = document.getElementById('hasNsdCheck').checked;
+      var nsdH = hasNsd ? parseFloat(document.getElementById('nsdHoursInput').value) || 0 : 0;
+
+      attendance[selectedDateKey] = { type: type, otHours: otH, nsdHours: nsdH };
+      persist('pk_att', attendance);
+      closeAttDrawer();
+      renderCalendar();
+      refreshHub();
+    }
+
+    // --- Next Payday Countdown Badge ---
+    function updatePaydayBadge() {
+      var now = new Date();
+      var day = now.getDate();
+      var year = now.getFullYear();
+      var month = now.getMonth();
+      var targetDate;
+
+      if (day < 10) {
+        targetDate = new Date(year, month, 10);
+      } else if (day < 25) {
+        targetDate = new Date(year, month, 25);
+      } else {
+        targetDate = new Date(year, month + 1, 10);
+      }
+
+      var diffDays = Math.ceil((targetDate - now) / (1000 * 60 * 60 * 24));
+      var badge = document.getElementById('paydayBadge');
+      if (diffDays <= 0) {
+        badge.innerText = '🎉 TODAY IS PAYDAY!';
+      } else {
+        badge.innerText = '🌸 ' + diffDays + ' Day' + (diffDays > 1 ? 's' : '') + ' until Payday';
+      }
+    }
+
+    // --- App Bootstrapper ---
+    window.addEventListener('DOMContentLoaded', function() {
+      loadSavedData();
+      updatePaydayBadge();
+      renderCalendar();
+      refreshVault();
+      refreshHub();
+    });
+  </script>
+</body>
+</html>
